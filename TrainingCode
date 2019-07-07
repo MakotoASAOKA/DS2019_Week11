@@ -1,0 +1,106 @@
+# global variable
+MaxA <- 6       #number of agent
+MaxR <- 200       #number of round
+err  <- 0.02     #rate of error
+propcoop <- matrix(0, MaxA, 5)  #propcoop[i, 1] probability of Cooperation i's first play
+                                #propcoop[i, 2] probability of Cooperation i's after mutual cooperation)
+                                #propcoop[i, 3] probability of Cooperation i's after betrayed
+                                #propcoop[i, 4] probability of Cooperation i's after betray
+                                #propcoop[i, 5] probability of Cooperation i's after mutual defection
+
+agentDF <- data.frame(id=1:2, payoff=0, tact= NA, memory= NA)
+dat <- array(0, dim=c(MaxA, MaxA+1)) # payoff matrix
+dat2 <- c("")                        # Play log    
+row_strategyname <-c("AllC","AllD","TFT","GTFT","Pavlof", "GPavlof")
+col_strategyname <-c("vs AllC","vs AllD","vs TFT","vs GTFT","vs Pavlof","vs GPavlof","total")
+col_p<-c("first step","mutual cooperarion(R)","betrayed(S)", "betray(T)","mutual defection(P)")
+
+#setup
+setup.func <- function(){
+
+# Today's training(1) 
+
+#ALLC: Always cooperate
+
+#ALLD: Always non-cooperate 
+
+#TFT: The first step is cooperation,and then select tactics the opposite player did on the previous step.
+
+#GTFT: Basically the same as TFT, but even if the other party is non-cooperation, cooperates 10 percent 
+
+#Pavlof: The first step is cooperation, and then Continue the same strategy if the previous result is mutual 
+#        cooperation(R),betrayal(T), change the strategy if the previous result is betrayed(S), mutual defection(P)
+ 
+#GPavlof: Basically the same as Pavlof, but even if the other party is non-cooperation, cooperates 10 percent
+
+}
+
+#Stochastic cooperation
+stochasticCooperation.func <- function(i,j){
+  rand <- runif(1, min= 0, max=1)
+  if(rand[1] < propcoop[i, j])   return("C")
+  else  return("D")
+}
+
+#choose tactics each agent
+selectTactics.func <- function(agent, i){
+    if (round==1)  agent$tact[i] <- stochasticCooperation.func(agent$strategy[i], 1)                            
+    else{ 
+      if      (agent$memory[i]== "R") agent$tact[i] <- stochasticCooperation.func(agent$strategy[i], 2)
+      else if (agent$memory[i]== "S") agent$tact[i] <- stochasticCooperation.func(agent$strategy[i], 3)
+      else if (agent$memory[i]== "T") agent$tact[i] <- stochasticCooperation.func(agent$strategy[i], 4)     
+      else                            agent$tact[i] <- stochasticCooperation.func(agent$strategy[i], 5) 
+      }
+  return(agent)  
+}   
+
+#error
+err.func <- function(tact){
+ if (tact =="C") return("D")  
+ else  return("C")      
+}
+    
+#game
+play.func <- function(agent){
+   rand <- runif(2, min= 0, max=1)                         # noize
+   if(rand[1] < err) {
+      agent$tact[1] <- err.func(agent$tact[1])
+      }
+   else{}   
+   if(rand[2] < err) {
+      agent$tact[2] <- err.func(agent$tact[2])
+      }
+   else{} 
+   
+   if (agent$tact[1] == "C" && agent$tact[2] == "C"){      # mutual cooperation
+     agent$memory[1]<-"R"
+     agent$memory[2]<-"R"  
+     agent$payoff[1]<- agent$payoff[1]+3
+     }
+  else if (agent$tact[1] == "D" && agent$tact[2] == "C"){  # agent1 betrays agent2 
+     agent$memory[1]<-"T"
+     agent$memory[2]<-"S"
+     agent$payoff[1]<- agent$payoff[1]+5
+     }        
+   else if (agent$tact[1] == "D" && agent$tact[2] == "D"){ # mutual defection
+     agent$memory[1]<-"P"
+     agent$memory[2]<-"P"
+     agent$payoff[1]<- agent$payoff[1]+1
+     }
+   else {                                                  # agent1 betraed agent2 
+     agent$memory[1]<-"S"
+     agent$memory[2]<-"T"    
+     }
+   return(agent)
+}
+
+#base
+# Today's training(2) 
+
+colnames(propcoop)<- col_p             #label the table 
+rownames(propcoop)<- row_strategyname  #label the table 
+colnames(dat)<- col_strategyname       #label the table 
+rownames(dat)<- row_strategyname       #label the table 
+propcoop
+dat
+#dat2
